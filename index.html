@@ -189,16 +189,16 @@ function draw(){
   let max=Math.max(...vals);
   let min=Math.min(...vals);
 
-  // 👉 强制拉开差距（关键优化）
-  if(max === min){
-    max += 1;
-    min -= 1;
+  // 👉 防止数值一样
+  if(max===min){
+    max+=1;
+    min-=1;
   }
 
   let pad=40;
   let step=(c.width-pad*2)/(arr.length-1||1);
 
-  // 👉 画坐标轴
+  // 👉 坐标轴
   ctx.strokeStyle="#ccc";
   ctx.beginPath();
   ctx.moveTo(pad,10);
@@ -208,34 +208,43 @@ function draw(){
 
   // 👉 画线
   ctx.strokeStyle="#224294";
+  ctx.lineWidth=2;
   ctx.beginPath();
+
+  let points=[];
+
   arr.forEach((x,i)=>{
     let v=mode==="avg"?x.avg:x.best;
     let px=pad+i*step;
     let py=c.height-pad-(v-min)/(max-min)*(c.height-pad*2);
+
+    points.push({px,py,v,date:x.date});
+
     i?ctx.lineTo(px,py):ctx.moveTo(px,py);
   });
+
   ctx.stroke();
 
-  // 👉 点 + 数值 + 日期
+  // 👉 关键：设置字体（必须）
   ctx.fillStyle="#000";
-  ctx.font="12px sans-serif";
+  ctx.font="12px Arial";
+  ctx.textAlign="center";
 
-  arr.forEach((x,i)=>{
-    let v=mode==="avg"?x.avg:x.best;
-    let px=pad+i*step;
-    let py=c.height-pad-(v-min)/(max-min)*(c.height-pad*2);
-
+  // 👉 点 + 数值 + 日期
+  points.forEach(p=>{
     ctx.beginPath();
-    ctx.arc(px,py,5,0,Math.PI*2);
+    ctx.arc(p.px,p.py,5,0,Math.PI*2);
     ctx.fill();
 
-    // 数值
-    ctx.fillText(v.toFixed(2)+"s", px-15, py-10);
+    // 数值（自动避免出界）
+    let yText = p.py - 10;
+    if(yText < 10) yText = p.py + 15;
 
-    // 日期（只显示日）
-    let day=x.date.split("-")[2];
-    ctx.fillText(day, px-8, c.height-pad+15);
+    ctx.fillText(p.v.toFixed(2)+"s", p.px, yText);
+
+    // 日期（只显示 日）
+    let day = p.date.split("-")[2];
+    ctx.fillText(day, p.px, c.height-pad+15);
   });
  });
 }
