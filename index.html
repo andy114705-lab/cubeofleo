@@ -2,278 +2,251 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
-<title>魔方成绩（移动端优化版）</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Leo 魔方训练</title>
 
 <style>
-body{
-    padding:16px;
-    font-size:16px;
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto;
-    background:#f5f7fa;
+body{margin:0;font-family:-apple-system;background:#f2f3f5;}
+.header{
+    position:sticky;top:0;
+    background:#224294;color:#fff;
+    padding:12px;text-align:center;font-size:18px;
 }
 
-/* 输入区 */
-.add-box{
-    margin:15px 0;
-    display:flex;
-    gap:10px;
-    flex-wrap:wrap;
-}
-input{
-    padding:10px;
-    font-size:16px;
-    border:1px solid #ddd;
-    border-radius:6px;
-}
-input[type="date"]{flex:1;}
-input[type="number"]{flex:1;}
+.container{padding:12px;}
 
-button{
-    padding:10px 14px;
-    border:none;
-    border-radius:6px;
-    font-size:15px;
-}
-
-/* 点击反馈 */
-button:active{
-    transform:scale(0.96);
-    opacity:0.8;
-}
-
-.btn-add{background:#224294;color:#fff;}
-.btn-del{background:#e53935;color:#fff;}
-.btn-open{background:#333;color:#fff;width:100%;margin-top:10px;}
-
-.item{
-    margin:6px 0;
-    padding:10px;
+.card{
     background:#fff;
-    border-radius:6px;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-}
-
-#lineBox{
-    width:100%;
-    height:240px;
-    margin:20px 0;
-    background:#fff;
-    border-radius:6px;
-}
-
-canvas{width:100%;height:100%;}
-
-.best-record{
+    border-radius:10px;
     padding:12px;
-    background:#fff0f0;
-    border-radius:6px;
-    color:#d02020;
-    margin:15px 0;
-    font-weight:bold;
+    margin-bottom:12px;
 }
 
-/* 提示 */
+input{padding:8px;border:1px solid #ddd;border-radius:6px;width:45%;}
+button{padding:8px 12px;border:none;border-radius:6px;background:#224294;color:#fff;}
+button:active{transform:scale(0.95);}
+
+.switch{
+    display:flex;gap:10px;margin-bottom:10px;
+}
+.switch button.active{background:#e53935;}
+
+.list-item{
+    display:flex;justify-content:space-between;
+    padding:6px 0;border-bottom:1px solid #eee;
+}
+
+.del{background:#e53935;}
+
+canvas{width:100%;height:220px;}
+
+.calendar{
+    display:grid;
+    grid-template-columns:repeat(7,1fr);
+    gap:4px;
+    text-align:center;
+}
+.day{
+    background:#fff;
+    padding:6px;
+    border-radius:6px;
+    font-size:12px;
+}
+.day.has{background:#e8f0ff;}
+.day:active{transform:scale(0.95);}
+
 .toast{
-    position:fixed;
-    bottom:40px;
-    left:50%;
+    position:fixed;bottom:40px;left:50%;
     transform:translateX(-50%);
-    background:#000;
-    color:#fff;
-    padding:10px 16px;
-    border-radius:20px;
-    font-size:14px;
-    opacity:0;
-    transition:0.3s;
+    background:#000;color:#fff;
+    padding:10px 16px;border-radius:20px;
+    opacity:0;transition:.3s;
 }
 .toast.show{opacity:0.85;}
-
-/* 全屏层 */
-.full{
-    position:fixed;
-    inset:0;
-    background:#fff;
-    z-index:999;
-    padding:20px;
-    overflow:auto;
-    display:none;
-}
-.full.show{display:block;}
 </style>
 </head>
 
 <body>
 
-<h3>录入成绩</h3>
+<div class="header">Leo 魔方训练</div>
 
-<div class="add-box">
-    <input type="date" id="date">
-    <input type="number" id="sec" placeholder="秒数">
-    <button class="btn-add" id="addBtn">保存</button>
+<div class="container">
+
+<div class="card">
+<input type="date" id="date">
+<input type="number" id="sec" placeholder="秒">
+<button onclick="add()">记录</button>
 </div>
 
-<div class="best-record" id="best"></div>
+<div class="card">
+<div id="best"></div>
+</div>
 
-<button class="btn-open" id="openBtn">查看每日最优</button>
+<div class="card">
+<div class="switch">
+<button id="avgBtn" class="active" onclick="setMode('avg')">平均</button>
+<button id="bestBtn" onclick="setMode('best')">最快</button>
+</div>
+<canvas id="cvs"></canvas>
+</div>
 
+<div class="card">
+<h3>日历</h3>
+<div id="cal" class="calendar"></div>
+</div>
+
+<div class="card">
+<h3>记录</h3>
 <div id="list"></div>
-
-<div id="lineBox">
-    <canvas id="cvs"></canvas>
-</div>
-
-<div class="full" id="full">
-    <h3>每日最优记录</h3>
-    <div id="fullList"></div>
-    <button class="btn-open" id="closeBtn">关闭</button>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
-const KEY="cube_data_v2";
+const KEY="leo_cube_pro";
 let data=[];
+let mode="avg";
 
 function toast(msg){
-    let t=document.getElementById("toast");
-    t.innerText=msg;
-    t.classList.add("show");
-    setTimeout(()=>t.classList.remove("show"),1500);
+ let t=document.getElementById("toast");
+ t.innerText=msg;
+ t.classList.add("show");
+ setTimeout(()=>t.classList.remove("show"),1500);
 }
 
 function save(){localStorage.setItem(KEY,JSON.stringify(data));}
 function load(){
-    let s=localStorage.getItem(KEY);
-    if(s) data=JSON.parse(s);
+ let s=localStorage.getItem(KEY);
+ if(s) data=JSON.parse(s);
 }
 
 function add(){
-    document.activeElement.blur(); // 关键：iPad修复
-
-    let d=document.getElementById("date").value;
-    let s=parseFloat(document.getElementById("sec").value);
-
-    if(!d || !s || s<=0){
-        toast("请输入正确数据");
-        return;
-    }
-
-    let t=new Date(d);
-    let str=`${t.getFullYear()}年${t.getMonth()+1}月${t.getDate()}日`;
-
-    data.push({sec:s,date:str});
-    save();
-
-    document.getElementById("sec").value="";
-    render();
-    draw();
+ document.activeElement.blur();
+ let d=date.value;
+ let s=parseFloat(sec.value);
+ if(!d||!s){toast("输入错误");return;}
+ data.push({date:d,sec:s});
+ save(); sec.value="";
+ render(); draw(); renderCal();
 }
 
 function del(i){
-    data.splice(i,1);
-    save();
-    render();
-    draw();
+ data.splice(i,1);
+ save(); render(); draw(); renderCal();
 }
 
-function getBest(){
-    if(!data.length) return null;
-    return data.reduce((a,b)=>a.sec<b.sec?a:b);
+function setMode(m){
+ mode=m;
+ avgBtn.classList.toggle("active",m==="avg");
+ bestBtn.classList.toggle("active",m==="best");
+ draw(); renderCal();
 }
 
-function groupDay(){
-    let m={};
-    data.forEach(x=>{
-        if(!m[x.date]||x.sec<m[x.date].sec) m[x.date]=x;
-    });
-    return Object.values(m);
+function group(){
+ let m={};
+ data.forEach(x=>{
+   if(!m[x.date]) m[x.date]=[];
+   m[x.date].push(x.sec);
+ });
+ let res=[];
+ for(let d in m){
+   let arr=m[d];
+   let avg=arr.reduce((a,b)=>a+b,0)/arr.length;
+   let best=Math.min(...arr);
+   res.push({date:d,avg,best});
+ }
+ return res.sort((a,b)=>new Date(a.date)-new Date(b.date));
 }
 
 function render(){
-    let list=document.getElementById("list");
-    list.innerHTML=data.map((x,i)=>`
-        <div class="item">
-            <span>${x.sec}s</span>
-            <button class="btn-del" onclick="del(${i})">删</button>
-        </div>
-    `).join("");
+ list.innerHTML=data.map((x,i)=>`
+  <div class="list-item">
+   <span>${x.date} - ${x.sec}s</span>
+   <button class="del" onclick="del(${i})">删</button>
+  </div>`).join("");
 
-    let b=getBest();
-    document.getElementById("best").innerText=
-        b?`🏆 最快 ${b.sec}s (${b.date})`:"暂无数据";
+ if(data.length){
+   let best=Math.min(...data.map(x=>x.sec));
+   bestDiv=`🏆 历史最佳：${best}s`;
+ }else bestDiv="暂无数据";
+
+ document.getElementById("best").innerText=bestDiv;
 }
 
 function draw(){
-    requestAnimationFrame(()=>{
-        let c=document.getElementById("cvs");
-        let box=document.getElementById("lineBox");
+ requestAnimationFrame(()=>{
+  let c=cvs;
+  c.width=c.parentNode.clientWidth;
+  c.height=220;
+  let ctx=c.getContext("2d");
+  ctx.clearRect(0,0,c.width,c.height);
 
-        c.width=box.clientWidth;
-        c.height=box.clientHeight;
+  let arr=group();
+  if(!arr.length) return;
 
-        let ctx=c.getContext("2d");
-        ctx.clearRect(0,0,c.width,c.height);
+  let vals=arr.map(x=>mode==="avg"?x.avg:x.best);
+  let max=Math.max(...vals),min=Math.min(...vals);
 
-        let arr=groupDay();
-        if(!arr.length) return;
+  let pad=30;
+  let step=(c.width-pad*2)/(arr.length-1||1);
 
-        let max=Math.max(...arr.map(x=>x.sec));
-        let min=Math.min(...arr.map(x=>x.sec));
+  ctx.beginPath();
+  arr.forEach((x,i)=>{
+    let v=mode==="avg"?x.avg:x.best;
+    let px=pad+i*step;
+    let py=c.height-pad-(v-min)/(max-min||1)*(c.height-pad*2);
+    i?ctx.lineTo(px,py):ctx.moveTo(px,py);
+  });
+  ctx.stroke();
 
-        let pad=30;
-        let step=(c.width-pad*2)/(arr.length-1||1);
-
-        ctx.beginPath();
-        arr.forEach((x,i)=>{
-            let px=pad+i*step;
-            let py=c.height-pad-(x.sec-min)/(max-min||1)*(c.height-pad*2);
-            i?ctx.lineTo(px,py):ctx.moveTo(px,py);
-        });
-        ctx.stroke();
-
-        arr.forEach((x,i)=>{
-            let px=pad+i*step;
-            let py=c.height-pad-(x.sec-min)/(max-min||1)*(c.height-pad*2);
-            ctx.beginPath();
-            ctx.arc(px,py,4,0,Math.PI*2);
-            ctx.fill();
-        });
-    });
+  arr.forEach((x,i)=>{
+    let v=mode==="avg"?x.avg:x.best;
+    let px=pad+i*step;
+    let py=c.height-pad-(v-min)/(max-min||1)*(c.height-pad*2);
+    ctx.beginPath();ctx.arc(px,py,4,0,Math.PI*2);ctx.fill();
+  });
+ });
 }
 
-function openFull(){
-    let arr=groupDay();
-    document.getElementById("fullList").innerHTML=
-        arr.map(x=>`<div class="item">${x.date}：${x.sec}s</div>`).join("");
-    document.getElementById("full").classList.add("show");
+function renderCal(){
+ let now=new Date();
+ let y=now.getFullYear();
+ let m=now.getMonth();
+
+ let first=new Date(y,m,1).getDay();
+ let days=new Date(y,m+1,0).getDate();
+
+ let arr=group();
+ let map={};
+ arr.forEach(x=>{
+   map[x.date]=mode==="avg"?x.avg.toFixed(1):x.best;
+ });
+
+ let html="";
+ for(let i=0;i<first;i++) html+="<div></div>";
+
+ for(let d=1;d<=days;d++){
+   let dateStr=`${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+   let val=map[dateStr];
+   html+=`<div class="day ${val?"has":""}" onclick="showDay('${dateStr}')">
+     ${d}<br>${val?val+"s":""}
+   </div>`;
+ }
+
+ cal.innerHTML=html;
 }
 
-function closeFull(){
-    document.getElementById("full").classList.remove("show");
-}
-
-/* 统一事件绑定（兼容 iPad） */
-function bindTap(id,fn){
-    let el=document.getElementById(id);
-    el.addEventListener("click",fn);
-    el.addEventListener("touchend",fn);
+function showDay(d){
+ let arr=data.filter(x=>x.date===d);
+ if(!arr.length){toast("无记录");return;}
+ toast(d+"："+arr.length+"次");
 }
 
 window.onload=function(){
-    load();
-
-    let d=new Date();
-    document.getElementById("date").value=d.toISOString().split("T")[0];
-
-    bindTap("addBtn",add);
-    bindTap("openBtn",openFull);
-    bindTap("closeBtn",closeFull);
-
-    render();
-    draw();
+ load();
+ let d=new Date();
+ date.value=d.toISOString().split("T")[0];
+ render(); draw(); renderCal();
 }
 </script>
 
