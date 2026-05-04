@@ -185,25 +185,57 @@ function draw(){
   if(!arr.length) return;
 
   let vals=arr.map(x=>mode==="avg"?x.avg:x.best);
-  let max=Math.max(...vals),min=Math.min(...vals);
 
-  let pad=30;
+  let max=Math.max(...vals);
+  let min=Math.min(...vals);
+
+  // 👉 强制拉开差距（关键优化）
+  if(max === min){
+    max += 1;
+    min -= 1;
+  }
+
+  let pad=40;
   let step=(c.width-pad*2)/(arr.length-1||1);
 
+  // 👉 画坐标轴
+  ctx.strokeStyle="#ccc";
+  ctx.beginPath();
+  ctx.moveTo(pad,10);
+  ctx.lineTo(pad,c.height-pad);
+  ctx.lineTo(c.width-10,c.height-pad);
+  ctx.stroke();
+
+  // 👉 画线
+  ctx.strokeStyle="#224294";
   ctx.beginPath();
   arr.forEach((x,i)=>{
     let v=mode==="avg"?x.avg:x.best;
     let px=pad+i*step;
-    let py=c.height-pad-(v-min)/(max-min||1)*(c.height-pad*2);
+    let py=c.height-pad-(v-min)/(max-min)*(c.height-pad*2);
     i?ctx.lineTo(px,py):ctx.moveTo(px,py);
   });
   ctx.stroke();
 
+  // 👉 点 + 数值 + 日期
+  ctx.fillStyle="#000";
+  ctx.font="12px sans-serif";
+
   arr.forEach((x,i)=>{
     let v=mode==="avg"?x.avg:x.best;
     let px=pad+i*step;
-    let py=c.height-pad-(v-min)/(max-min||1)*(c.height-pad*2);
-    ctx.beginPath();ctx.arc(px,py,4,0,Math.PI*2);ctx.fill();
+    let py=c.height-pad-(v-min)/(max-min)*(c.height-pad*2);
+
+    ctx.beginPath();
+    ctx.arc(px,py,5,0,Math.PI*2);
+    ctx.fill();
+
+    // 数值
+    ctx.fillText(v.toFixed(2)+"s", px-15, py-10);
+
+    // 日期（只显示日）
+    let day=x.date.split("-")[2];
+    ctx.fillText(day, px-8, c.height-pad+15);
   });
  });
 }
